@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minion Trivia Quiz!</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', 'Arial', sans-serif;
+            background-color: #fce029; /* Minion Yellow */
+            color: #2b5585; /* Minion Blue */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        #quiz-container {
+            background: white;
+            border: 5px solid #2b5585;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            margin-top: 20px;
+        }
+        h1 { 
+            color: #2b5585; 
+            text-shadow: 2px 2px white;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        h2 {
+            min-height: 60px;
+        }
+        .btn {
+            background-color: #2b5585;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: transform 0.1s, background-color 0.2s;
+        }
+        .btn:hover { 
+            background-color: #1a3c63; 
+            transform: scale(1.02); 
+        }
+        .option-btn {
+            display: block;
+            width: 85%;
+            margin: 12px auto;
+            background-color: #f0f0f0;
+            color: #333;
+            border: 2px solid #ccc;
+        }
+        .option-btn:hover:not(:disabled) { 
+            background-color: #e0e0e0; 
+            border-color: #2b5585;
+        }
+        .option-btn:disabled {
+            cursor: not-allowed;
+            transform: none;
+        }
+        .correct { 
+            background-color: #4CAF50 !important; 
+            color: white !important; 
+            border-color: #2E7D32 !important;
+        }
+        .wrong { 
+            background-color: #f44336 !important; 
+            color: white !important; 
+            border-color: #c62828 !important;
+        }
+        #score-board { 
+            font-size: 22px; 
+            font-weight: bold; 
+            margin-bottom: 20px;
+            background-color: #2b5585;
+            color: white;
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 20px;
+        }
+        #next-btn, #restart-btn { 
+            display: none; 
+            margin-top: 20px;
+            background-color: #fce029;
+            color: #2b5585;
+            border: 2px solid #2b5585;
+        }
+        #next-btn:hover, #restart-btn:hover {
+            background-color: #f1c40f;
+        }
+    </style>
+</head>
+<body>
+
+<h1>🍌 Minion Trivia Quiz! 🍌</h1>
+<div id="quiz-container">
+    <div id="score-board">Score: <span id="score">0</span> / <span id="total">0</span></div>
+    <h2 id="question-text">Loading question...</h2>
+    <div id="options-container"></div>
+    <button id="next-btn" class="btn" onclick="nextQuestion()">Next Question ➡️</button>
+    <button id="restart-btn" class="btn" onclick="startQuiz()">Play Again 🔄</button>
+</div>
+
+<script>
+    // Pool of trivia questions
+    const triviaQuestions = [
+        { q: "What is the Minions' absolute favorite food?", options: ["Apples", "Bananas", "Pizza", "Ice Cream"], a: "Bananas" },
+        { q: "What is the name of the supervillain the Minions serve?", options: ["Vector", "El Macho", "Gru", "Balthazar Bratt"], a: "Gru" },
+        { q: "Which Minion has two different colored eyes (heterochromia)?", options: ["Kevin", "Stuart", "Bob", "Dave"], a: "Bob" },
+        { q: "What color do Minions turn when they are mutated by the PX-41 serum?", options: ["Red", "Green", "Purple", "Black"], a: "Purple" },
+        { q: "Which Minion is known for playing the guitar (and ukulele)?", options: ["Stuart", "Carl", "Jerry", "Phil"], a: "Stuart" },
+        { q: "What language do the Minions speak?", options: ["Spanish", "Minionese", "French", "Esperanto"], a: "Minionese" },
+        { q: "Which Minion briefly pulls Excalibur from the stone and becomes King of England?", options: ["Kevin", "Bob", "Stuart", "Tim"], a: "Bob" },
+        { q: "Who created the Minions (the animation studio)?", options: ["Disney", "Pixar", "Illumination", "DreamWorks"], a: "Illumination" },
+        { q: "What is the name of Gru's oldest adopted daughter?", options: ["Edith", "Agnes", "Margo", "Lucy"], a: "Margo" },
+        { q: "What type of weapon does Gru famously use to steal the moon?", options: ["Freeze Ray", "Shrink Ray", "Laser Gun", "Fart Gun"], a: "Shrink Ray" },
+        { q: "What do the Minions call Gru?", options: ["Boss", "Mini-Boss", "Master", "El Presidente"], a: "Mini-Boss" },
+        { q: "Which Minion is the tallest of the main trio?", options: ["Kevin", "Stuart", "Bob", "Otto"], a: "Kevin" },
+        { q: "What is Dr. Nefario's job?", options: ["Chef", "Pilot", "Evil Scientist", "Accountant"], a: "Evil Scientist" },
+        { q: "In 'Despicable Me 2', what does Gru disguise himself as for a party?", options: ["A Fairy Princess", "A Minion", "A Pirate", "A Clown"], a: "A Fairy Princess" },
+        { q: "What is Agnes' favorite animal?", options: ["Puppy", "Kitten", "Unicorn", "Pony"], a: "Unicorn" }
+    ];
+
+    let currentQuestion = {};
+    let score = 0;
+    let askedQuestions = 0;
+    let availableQuestions = [];
+
+    function startQuiz() {
+        score = 0;
+        askedQuestions = 0;
+        // Copy the pool to availableQuestions
+        availableQuestions = [...triviaQuestions];
+        
+        document.getElementById('score').innerText = score;
+        document.getElementById('total').innerText = askedQuestions;
+        document.getElementById('restart-btn').style.display = 'none';
+        document.getElementById('score-board').style.display = 'inline-block';
+        
+        nextQuestion();
+    }
+
+    function nextQuestion() {
+        if (availableQuestions.length === 0 || askedQuestions >= 10) { // Limit to 10 questions per round
+            endQuiz();
+            return;
+        }
+
+        document.getElementById('next-btn').style.display = 'none';
+        document.getElementById('options-container').innerHTML = '';
+        
+        // Randomly select a question
+        const randomIndex = Math.floor(Math.random() * availableQuestions.length);
+        currentQuestion = availableQuestions[randomIndex];
+        
+        // Remove the selected question from the available pool so it isn't repeated
+        availableQuestions.splice(randomIndex, 1);
+        
+        document.getElementById('question-text').innerText = currentQuestion.q;
+
+        // Shuffle options so the correct answer isn't always in the same spot
+        const shuffledOptions = [...currentQuestion.options].sort(() => Math.random() - 0.5);
+
+        shuffledOptions.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.innerText = opt;
+            btn.classList.add('btn', 'option-btn');
+            btn.onclick = () => checkAnswer(opt, btn);
+            document.getElementById('options-container').appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selectedOption, btn) {
+        // Disable all buttons once an answer is chosen
+        const buttons = document.querySelectorAll('.option-btn');
+        buttons.forEach(b => b.disabled = true);
+
+        askedQuestions++;
+        document.getElementById('total').innerText = askedQuestions;
+
+        if (selectedOption === currentQuestion.a) {
+            btn.classList.add('correct');
+            score++;
+            document.getElementById('score').innerText = score;
+        } else {
+            btn.classList.add('wrong');
+            // Highlight the correct answer for the user
+            buttons.forEach(b => {
+                if (b.innerText === currentQuestion.a) {
+                    b.classList.add('correct');
+                }
+            });
+        }
+
+        // Check if we hit the limit or ran out of questions
+        if (availableQuestions.length > 0 && askedQuestions < 10) {
+            document.getElementById('next-btn').style.display = 'inline-block';
+        } else {
+            setTimeout(endQuiz, 1500); // Auto-end after a short delay
+        }
+    }
+
+    function endQuiz() {
+        document.getElementById('question-text').innerText = "Quiz Complete! 🎉";
+        
+        let message = "";
+        if (score === askedQuestions) message = "You're a true Minion Master! 👑";
+        else if (score >= askedQuestions / 2) message = "Not bad! Have a banana! 🍌";
+        else message = "Better luck next time! 😅";
+
+        document.getElementById('options-container').innerHTML = `<h3>You scored ${score} out of ${askedQuestions}!</h3><p>${message}</p>`;
+        document.getElementById('next-btn').style.display = 'none';
+        document.getElementById('restart-btn').style.display = 'inline-block';
+    }
+
+    // Initialize the quiz when the page loads
+    window.onload = startQuiz;
+</script>
+</body>
+</html>
